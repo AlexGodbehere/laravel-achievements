@@ -54,7 +54,8 @@ abstract class Achievement implements CanAchieve
      */
     public function __construct()
     {
-        $this->getModel();
+       // This lives in here so that we can run composer dump-autoload in our CI environment. For some reason this tries to create database entries when run.
+        try {$this->getModel();} catch (\Exception $e) {}
     }
 
     /**
