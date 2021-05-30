@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
  */
 class LoadAchievementsCommand extends Command
 {
+
     use ConfirmableTrait;
 
     /**
@@ -22,8 +23,7 @@ class LoadAchievementsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'achievements:load {--force : Force the operation to run when in production}
-                {--path=* : The path(s) to the achievements files to be executed}';
+    protected $signature = 'achievements:load {--force : Force the operation to run when in production}';
 
     /**
      * The console command description.
@@ -39,39 +39,31 @@ class LoadAchievementsCommand extends Command
      */
     public function handle()
     {
+
+        // TODO: Make this recursive in all app/Domain/*/Achievements and app/Domain/*/Achievements/Chains folders
+
         if (!$this->confirmToProceed()) {
             return;
         }
 
-        $paths = $this->option('path');
+        $classes = [];
 
-        if (empty($paths)) {
-            $paths = [
-                'app/Achievements'
+
+        $files = array_diff(glob('app/Domain/*/Achievements/*Achievement.php'), ['.', '..']);
+
+        foreach ($files as $file) {
+            if (!Str::endsWith($file, '.php')) {
+                $this->warn(sprintf('File %s is not an php file', $file));
+                continue;
+            }
+
+            $classes[] = [
+              'name'      => basename(Str::before($file, '.php')),
+              'namespace' => $this->getNamespace(file_get_contents($file)),
             ];
         }
 
-        $classes = [];
-
-        foreach ($paths as $path) {
-            $this->info(sprintf('Load classes in %s...', $path));
-
-            $files = array_diff(scandir($path, SCANDIR_SORT_ASCENDING), array('.', '..'));
-
-            foreach ($files as $file) {
-                if (!Str::endsWith($file, '.php')) {
-                    $this->warn(sprintf('File %s in %s not an php file', $file, $path));
-                    continue;
-                }
-
-                $classes[] = [
-                    'name' => Str::before($file, '.php'),
-                    'namespace' => $this->getNamespace(file_get_contents($path . '/' . $file))
-                ];
-            }
-
-            $this->info(sprintf('Found %d classes. Instantiating...', count($classes)));
-        }
+        $this->info(sprintf('Found %d classes. Instantiating...', count($classes)));
 
         /** @var Achievement[] $objects */
         $objects = [];
@@ -98,13 +90,16 @@ class LoadAchievementsCommand extends Command
 
     /**
      * @param $src
+     *
      * @return string|null
      */
-    private function getNamespace($src): ?string
-    {
+    private function getNamespace($src)
+    : ?string {
+
         if (preg_match('#^namespace\s+(.+?);$#sm', $src, $m)) {
             return $m[1];
         }
         return null;
     }
+
 }
