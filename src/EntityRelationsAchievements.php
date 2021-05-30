@@ -26,7 +26,7 @@ trait EntityRelationsAchievements
             $this->syncAchievements();
         }
         return $this->morphMany(AchievementProgress::class, 'achiever')
-            ->orderBy('updated_at', 'desc');
+            ->orderBy('achievement_id', 'asc');
     }
 
     /**
